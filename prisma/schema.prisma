@@ -1,0 +1,30 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model lotes {
+  id Int @id @default(autoincrement())
+  nome String @db.VarChar(100)
+  criado_em DateTime @default(now())
+
+  boletos boletos[]
+}
+
+model boletos {
+  id Int @id @default(autoincrement())
+  nome_sacado String @db.VarChar(255)
+  id_lote Int 
+  valor Decimal
+  linha_digitavel String
+  criado_em DateTime @default(now())
+
+  lotes lotes @relation(fields: [id_lote], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
