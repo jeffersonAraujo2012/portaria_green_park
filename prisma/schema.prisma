@@ -24,7 +24,7 @@ model boletos {
   nome_sacado String @db.VarChar(255)
   id_lote Int 
   valor Decimal @db.Decimal(10,2)
-  linha_digitavel String
+  linha_digitavel String @unique
   criado_em DateTime @default(now())
 
   lotes lotes @relation(fields: [id_lote], references: [id], onDelete: Cascade, onUpdate: Cascade)
