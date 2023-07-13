@@ -1,10 +1,10 @@
 import addZerosEsqueda from '@/utils/addZerosEsquerda';
-import lotesRepository from '@/lotes/lotes.repository';
+import lotesRepository from '@/modules/lotes/lotes.repository';
 import NotFoundError from '@/errors/NotFound.error';
 import DuplicatedValueError from '@/errors/DuplicatedValue.error';
 import { DadoUploadBoleto } from './middlewares/validarUploadBoletos.middleware';
-import boletosRepository from '@/boletos/boletos.repository';
-import boletosService from '@/boletos/boletos.service';
+import boletosRepository from '@/modules/boletos/boletos.repository';
+import boletosService from '@/modules/boletos/boletos.service';
 
 type HashtableBoletos = {
   [key: string]: DadoUploadBoleto;

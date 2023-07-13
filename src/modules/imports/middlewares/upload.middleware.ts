@@ -1,7 +1,7 @@
 import multer from 'multer';
 import path from 'path';
 
-const tempFolder = path.resolve(__dirname, '..', '..', '..', 'tmp');
+const tempFolder = path.resolve(__dirname, '..', '..', '..', '..', 'tmp');
 
 // Configuração do Multer
 const storage = multer.diskStorage({
