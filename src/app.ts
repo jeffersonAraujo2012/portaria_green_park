@@ -1,13 +1,13 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import importsRouter from './modules/imports/imports.router';
+import boletosRouter from './modules/boletos/boletos.router';
 dotenv.config();
 
 const app = express();
 
 app.use(cors());
-app.use('/importar', importsRouter);
+app.use('/boletos', boletosRouter);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {

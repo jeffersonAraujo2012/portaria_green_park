@@ -1,5 +1,5 @@
 import { NextFunction, Response } from 'express';
-import { UploadRequest } from '../imports.controller';
+import { UploadRequest } from '@/modules/boletos/boletos.controller';
 import NoFilesReceivedError from '@/errors/NoFilesReceived.error';
 import InvalidFormat from '@/errors/InvalidFormat.error';
 import fs from 'fs';
