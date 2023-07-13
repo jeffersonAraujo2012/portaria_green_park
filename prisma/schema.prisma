@@ -23,7 +23,7 @@ model boletos {
   id Int @id @default(autoincrement())
   nome_sacado String @db.VarChar(255)
   id_lote Int 
-  valor Decimal
+  valor Decimal @db.Decimal(10,2)
   linha_digitavel String
   criado_em DateTime @default(now())
 
