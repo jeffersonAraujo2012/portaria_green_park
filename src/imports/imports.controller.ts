@@ -1,36 +1,28 @@
 import { Request, Response } from 'express';
 import csvParser from 'csv-parser';
 import fs from 'fs';
+import importsService from './imports.service';
+import httpStatus from 'http-status';
 
-type UploadRequest = Request & {
+export type UploadRequest = Request & {
   file: any;
+  uploadedData?: any;
 }
 
-export function importarBoleto(req: UploadRequest, res: Response) {
-  // Verifica se o arquivo foi enviado
-  if (!req.file) {
-    return res.status(400).send('Nenhum arquivo foi enviado.');
+export async function importarBoletos(req: UploadRequest, res: Response) {
+  try {
+    const result = await importsService.importarBoletos(req.uploadedData);
+    return res.status(201).send(result);
+  } catch (error) {
+    if (error.name === 'ConflitError') {
+      return res.status(httpStatus.CONFLICT).send(error);
+    }
+    return res.sendStatus(httpStatus.INTERNAL_SERVER_ERROR);
   }
-
-  // Verifica se o arquivo é um CSV
-  if (req.file.mimetype !== 'text/csv') {
-    return res.status(400).send('O arquivo deve ser um CSV.');
-  }
-
-  // Faz o parsing do arquivo CSV
-  const results: any[] = [];
-  const readable = fs.createReadStream(req.file.path);
-
-  readable
-    .pipe(csvParser({ separator: ';' }))
-    .on('data', (data) => results.push(data))
-    .on('end', () => {
-      res.send(results);
-    });
 }
 
 const importsController = {
-  importarBoleto
+  importarBoletos
 };
 
 export default importsController;
