@@ -14,7 +14,7 @@ export type DadoUploadBoleto = {
   linha_digitavel: string;
 };
 
-export default async function validarUploadBoletos(
+export default async function validarUploadBoletosCsv(
   req: UploadRequest,
   res: Response,
   next: NextFunction

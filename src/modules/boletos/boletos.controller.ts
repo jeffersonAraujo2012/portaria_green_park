@@ -5,7 +5,7 @@ import boletosService from './boletos.service';
 export type UploadRequest = Request & {
   file: any;
   uploadedData?: any;
-}
+};
 
 export async function importarBoletos(req: UploadRequest, res: Response) {
   try {
@@ -19,8 +19,21 @@ export async function importarBoletos(req: UploadRequest, res: Response) {
   }
 }
 
+async function importarPDFBoletos(req: UploadRequest, res: Response) {
+  try {
+    await boletosService.importarPDFBoletos(req.uploadedData, req.file);
+    return res.sendStatus(httpStatus.CREATED);
+  } catch (error) {
+    if (error.name === 'DuplicatedValueError') {
+      return res.status(httpStatus.CONFLICT).send(error);
+    }
+    return res.status(httpStatus.INTERNAL_SERVER_ERROR).send(error);
+  }
+}
+
 const boletosController = {
-  importarBoletos
+  importarBoletos,
+  importarPDFBoletos,
 };
 
 export default boletosController;

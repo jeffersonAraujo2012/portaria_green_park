@@ -8,7 +8,11 @@ import DuplicatedValueError from '@/errors/DuplicatedValue.error';
 import NotFoundError from '@/errors/NotFound.error';
 
 import addZerosEsqueda from '@/utils/addZerosEsquerda';
-import { DadoUploadBoleto } from '@/middlewares/validarUploadBoletos.middleware';
+import { DadoUploadBoleto } from '@/middlewares/validarUploadBoletosCsv.middleware';
+
+import fs from 'fs';
+import path from 'path';
+import { PDFDocument } from 'pdf-lib';
 
 type HashtableBoletos = {
   [key: string]: DadoUploadBoleto;
@@ -107,9 +111,82 @@ async function criarVariosBoletos(
   return boletosRepository.createMany(boletos);
 }
 
+type HTLinhaDigitavelPage = {
+  [key: string]: number;
+};
+
+type HTPageBoletoId = {
+  [key: number]: number;
+};
+
+type pageBoletosPDF = {
+  [line: string]: string;
+};
+
+async function importarPDFBoletos(
+  textBoletosPDF: pageBoletosPDF[],
+  pdfBase: any
+) {
+  const INDICE_LINHA_DIGITAVEL = 3;
+
+  const hashtableLinhaDigitavelPage: HTLinhaDigitavelPage = {};
+  const linhasDigitaveis = textBoletosPDF.map((page, index) => {
+    const linhaDigitavel = page[INDICE_LINHA_DIGITAVEL];
+    if (hashtableLinhaDigitavelPage[linhaDigitavel]) {
+      throw DuplicatedValueError(
+        `Os boletos das páginas ${
+          hashtableLinhaDigitavelPage[linhaDigitavel] + 1
+        } e ${
+          index + 1
+        } possuem a mesma linha digitável. Por favor, verifique e tente novamente.`
+      );
+    }
+    hashtableLinhaDigitavelPage[linhaDigitavel] = index;
+    return linhaDigitavel;
+  });
+
+  const boletos = await boletosRepository.findManyByLinhaDigitavel(
+    linhasDigitaveis
+  );
+
+  const HTPageBoletoId: HTPageBoletoId = {};
+  boletos.forEach((boleto) => {
+    const page = hashtableLinhaDigitavelPage[boleto.linha_digitavel];
+    HTPageBoletoId[page] = boleto.id;
+  });
+
+  const localParaOsNovosPdfs = path.resolve(
+    __dirname,
+    '..',
+    '..',
+    '..',
+    'files',
+    'boletos-salvos'
+  );
+  fs.mkdirSync(localParaOsNovosPdfs, {recursive: true});
+
+  const pdfBuffer = fs.readFileSync(pdfBase.path);
+  const pdfDoc = await PDFDocument.load(pdfBuffer);
+
+  const numPages = pdfDoc.getPageCount();
+  for (let i = 0; i < numPages; i++) {
+    const newDoc = await PDFDocument.create();
+    const outputNewDoc = localParaOsNovosPdfs + '/' + HTPageBoletoId[i] + '.pdf';
+
+    const [page] = await newDoc.copyPages(pdfDoc,[i])
+    newDoc.addPage(page);
+
+    const newDocData = await newDoc.save();
+    fs.writeFileSync(outputNewDoc, newDocData);
+  }
+
+  return HTPageBoletoId;
+}
+
 const boletosService = {
   criarVariosBoletos,
   importarBoletos,
+  importarPDFBoletos,
 };
 
 export default boletosService;
