@@ -11,7 +11,11 @@ export type ObterBoletosProps = {
 const obterBoletoSchema = Joi.object<ObterBoletosProps>({
   nome: Joi.string(),
   valor_inicial: Joi.number().min(0),
-  valor_final: Joi.number().min(Joi.ref('valor_inicial')),
+  valor_final: Joi.when('valor_inicial', {
+    is: Joi.exist(),
+    then: Joi.number().min(Joi.ref('valor_inicial')),
+    otherwise: Joi.number().min(0)
+  }),
   id_lote: Joi.number().integer().min(1),
   relatorio: Joi.number().valid(1),
 });
