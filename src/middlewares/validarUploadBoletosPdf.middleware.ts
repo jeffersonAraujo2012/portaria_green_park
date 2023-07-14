@@ -22,7 +22,7 @@ export default async function validarUploadBoletosPdf(
   if (file.mimetype !== 'application/pdf') {
     return res
       .status(httpStatus.UNSUPPORTED_MEDIA_TYPE)
-      .send(InvalidFormat('O arquivo deve ser um CSV.'));
+      .send(InvalidFormat('O arquivo deve ser um PDF.'));
   }
 
   const pdfData = [];
