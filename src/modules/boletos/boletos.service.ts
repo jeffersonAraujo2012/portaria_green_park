@@ -13,6 +13,7 @@ import { DadoUploadBoleto } from '@/middlewares/validarUploadBoletosCsv.middlewa
 import fs from 'fs';
 import path from 'path';
 import { PDFDocument } from 'pdf-lib';
+import { ObterBoletosProps } from './schemas/obterBoletos.schema';
 
 type HashtableBoletos = {
   [key: string]: DadoUploadBoleto;
@@ -183,10 +184,15 @@ async function importarPDFBoletos(
   return HTPageBoletoId;
 }
 
+async function obterBoletos(queries: ObterBoletosProps): Promise<boletos[]> {
+  return boletosRepository.getBoletos(queries)
+}
+
 const boletosService = {
   criarVariosBoletos,
   importarBoletos,
   importarPDFBoletos,
+  obterBoletos,
 };
 
 export default boletosService;
