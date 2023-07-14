@@ -1,4 +1,4 @@
-import prisma from '@/config/database';
+import prisma from '@/configs/database';
 import { lotes } from '@prisma/client';
 
 async function findManyByName(nomes: string[]): Promise<lotes[]> {

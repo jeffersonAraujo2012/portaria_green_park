@@ -34,12 +34,13 @@ async function importarPDFBoletos(req: UploadRequest, res: Response) {
 }
 
 async function obterBoletos(req: Request, res: Response) {
-  const {id_lote, nome, valor_final, valor_inicial} = req.query as ObterBoletosProps;
+  const {id_lote, nome, valor_final, valor_inicial, relatorio} = req.query as ObterBoletosProps;
   const queries = {
     id_lote: Number(id_lote),
     nome: nome && diacritics.remove(nome?.toUpperCase()),
     valor_inicial: Number(valor_inicial),
     valor_final: Number(valor_final),
+    relatorio
   }
   try {
     const boletos = await boletosService.obterBoletos(queries);

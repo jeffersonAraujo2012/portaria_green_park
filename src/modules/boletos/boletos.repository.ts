@@ -1,4 +1,4 @@
-import prisma from '@/config/database';
+import prisma from '@/configs/database';
 import { boletos } from '@prisma/client';
 import { ObterBoletosProps } from './schemas/obterBoletos.schema';
 import { Decimal } from '@prisma/client/runtime';

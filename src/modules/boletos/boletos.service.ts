@@ -14,6 +14,8 @@ import fs from 'fs';
 import path from 'path';
 import { PDFDocument } from 'pdf-lib';
 import { ObterBoletosProps } from './schemas/obterBoletos.schema';
+import printer from '@/configs/PDFMaker';
+import { TDocumentDefinitions } from 'pdfmake/interfaces';
 
 type HashtableBoletos = {
   [key: string]: DadoUploadBoleto;
@@ -164,7 +166,7 @@ async function importarPDFBoletos(
     'files',
     'boletos-salvos'
   );
-  fs.mkdirSync(localParaOsNovosPdfs, {recursive: true});
+  fs.mkdirSync(localParaOsNovosPdfs, { recursive: true });
 
   const pdfBuffer = fs.readFileSync(pdfBase.path);
   const pdfDoc = await PDFDocument.load(pdfBuffer);
@@ -172,9 +174,10 @@ async function importarPDFBoletos(
   const numPages = pdfDoc.getPageCount();
   for (let i = 0; i < numPages; i++) {
     const newDoc = await PDFDocument.create();
-    const outputNewDoc = localParaOsNovosPdfs + '/' + HTPageBoletoId[i] + '.pdf';
+    const outputNewDoc =
+      localParaOsNovosPdfs + '/' + HTPageBoletoId[i] + '.pdf';
 
-    const [page] = await newDoc.copyPages(pdfDoc,[i])
+    const [page] = await newDoc.copyPages(pdfDoc, [i]);
     newDoc.addPage(page);
 
     const newDocData = await newDoc.save();
@@ -184,8 +187,93 @@ async function importarPDFBoletos(
   return HTPageBoletoId;
 }
 
-async function obterBoletos(queries: ObterBoletosProps): Promise<boletos[]> {
-  return boletosRepository.getBoletos(queries)
+type Base64Response = {
+  base64: string;
+};
+
+async function obterBoletos(
+  queries: ObterBoletosProps
+): Promise<boletos[] | Base64Response> {
+  const boletos = await boletosRepository.getBoletos(queries);
+
+  if (!queries.relatorio) {
+    return boletos;
+  }
+
+  let tableHeaderPdf;
+  const tableBodyPdf = boletos.map((boleto, index) => {
+    const dataRaw: any[] = [];
+    const keys = Object.keys(boleto);
+    if (index === 0) tableHeaderPdf = [...keys];
+    keys.forEach((key: keyof boletos) => {
+      if (key === 'valor') {
+        return dataRaw.push(boleto[key].toFixed(2));
+      }
+      if (key === 'criado_em') {
+        const d = boleto.criado_em;
+        const year = d.getFullYear();
+        const month = addZerosEsqueda(d.getMonth(), 2);
+        const day = d.getDate();
+        return dataRaw.push(`${year}-${month}-${day}`);
+      }
+      dataRaw.push(boleto[key]);
+    });
+    return dataRaw;
+  });
+
+  const tableDataPdf = [tableHeaderPdf, ...tableBodyPdf];
+
+  const docDefinition: TDocumentDefinitions = {
+    defaultStyle: { font: 'Helvetica' },
+    styles: {
+      header: {
+        fontSize: 20,
+        bold: true,
+        marginBottom: 24,
+      },
+    },
+    content: [
+      { text: 'Relatório', style: 'header' },
+      {
+        layout: 'lightHorizontalLines', // optional
+        table: {
+          headerRows: 1,
+          body: tableDataPdf,
+        },
+      },
+    ],
+  };
+
+  const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+  const base64PDF = await generateBase64PDF(pdfDoc);
+
+  return { base64: base64PDF };
+}
+
+async function generateBase64PDF(pdfDoc: PDFKit.PDFDocument) {
+  const uniqueName =
+    Date.now() + '-' + Math.round(Math.random() * 1e9) + '.pdf';
+  const tmpPath = path.resolve(__dirname, '..', '..', '..', 'tmp');
+
+  const base64PDF: string = await new Promise((resolve, reject) => {
+    try {
+      const bufferPDF: any[] = [];
+      pdfDoc.pipe(fs.createWriteStream(`${tmpPath}/${uniqueName}`));
+      pdfDoc.on('data', (buffer) => {
+        bufferPDF.push(buffer);
+      });
+      pdfDoc.end();
+
+      pdfDoc.on('end', () => {
+        resolve(Buffer.concat(bufferPDF).toString('base64'));
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+  fs.unlinkSync(`${tmpPath}/${uniqueName}`);
+  return base64PDF;
 }
 
 const boletosService = {
