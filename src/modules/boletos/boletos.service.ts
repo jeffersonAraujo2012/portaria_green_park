@@ -200,6 +200,13 @@ async function obterBoletos(
     return boletos;
   }
 
+  const pdfDoc = generatePDFBoletos(boletos);
+  const base64PDF = await generateBase64PDF(pdfDoc);
+
+  return { base64: base64PDF };
+}
+
+function generatePDFBoletos(boletos: boletos[]) {
   let tableHeaderPdf;
   const tableBodyPdf = boletos.map((boleto, index) => {
     const dataRaw: any[] = [];
@@ -244,11 +251,7 @@ async function obterBoletos(
     ],
   };
 
-  const pdfDoc = printer.createPdfKitDocument(docDefinition);
-
-  const base64PDF = await generateBase64PDF(pdfDoc);
-
-  return { base64: base64PDF };
+  return printer.createPdfKitDocument(docDefinition);
 }
 
 async function generateBase64PDF(pdfDoc: PDFKit.PDFDocument) {
