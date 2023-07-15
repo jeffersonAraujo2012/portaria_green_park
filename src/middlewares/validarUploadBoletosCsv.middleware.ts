@@ -48,10 +48,13 @@ export default async function validarUploadBoletosCsv(
       readable
         .pipe(csvParser({ separator: ',' }))
         .on('headers', (header) => {
-          csvHeader.push(header);
+          csvHeader.push(...header);
         })
         .on('data', (data) => {
-          if (htLinhaDigitavel[data.linha_digitavel]) {
+          if (
+            htLinhaDigitavel[data.linha_digitavel] &&
+            data.linha_digitavel !== undefined
+          ) {
             throw ConflitError(
               `A linha_digitavel ${data.linha_digitavel} está duplicada no documento`
             );
@@ -80,7 +83,7 @@ export default async function validarUploadBoletosCsv(
         });
     });
 
-    if (JSON.stringify(expectedCsvHeader) === JSON.stringify(csvHeader)) {
+    if (JSON.stringify(expectedCsvHeader) !== JSON.stringify(csvHeader)) {
       throw InvalidFormat(
         `O header esperado: ${expectedCsvHeader}. Não coincide com o header recebido: ${csvHeader}`
       );
@@ -92,15 +95,20 @@ export default async function validarUploadBoletosCsv(
 
     req.uploadedData = boletos;
   } catch (error) {
+    fs.unlinkSync(req.file.path);
+
     if (error.name === 'InvalidFormat') {
       return res.status(httpStatus.UNPROCESSABLE_ENTITY).send(error);
     }
+
     if (error.name === 'ConflitError') {
       return res.status(httpStatus.CONFLICT).send(error);
     }
+
     if (error.name === 'InvalidDataError') {
       return res.status(httpStatus.BAD_REQUEST).send(error);
     }
+
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .send('Erro interno ao tentar validar o documento');
