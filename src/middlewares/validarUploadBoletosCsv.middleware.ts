@@ -6,6 +6,9 @@ import fs from 'fs';
 import csvParser from 'csv-parser';
 import httpStatus from 'http-status';
 import { Decimal } from '@prisma/client/runtime';
+import InvalidDataError from '@/errors/InvalidDataError';
+import ConflitError from '@/errors/Conflit.error';
+import uploadBoletoSchema from '@/modules/boletos/schemas/uploadBoleto.schema';
 
 export type DadoUploadBoleto = {
   nome: string;
@@ -20,42 +23,88 @@ export default async function validarUploadBoletosCsv(
   next: NextFunction
 ) {
   const file = req.file;
-  // Verifica se o arquivo foi enviado
+
   if (!file) {
     return res
       .status(httpStatus.UNPROCESSABLE_ENTITY)
       .send(NoFilesReceivedError());
   }
 
-  // Verifica se o arquivo é um CSV
   if (file.mimetype !== 'text/csv') {
     return res
       .status(httpStatus.UNSUPPORTED_MEDIA_TYPE)
       .send(InvalidFormat('O arquivo deve ser um CSV.'));
   }
 
-  // Faz o parsing do arquivo CSV
-  const boletos: DadoUploadBoleto[] = [];
-  const readable = fs.createReadStream(file.path);
+  try {
+    const expectedCsvHeader = ['nome', 'unidade', 'valor', 'linha_digitavel'];
+    const csvHeader: string[] = [];
+    const boletos: DadoUploadBoleto[] = [];
+    const validateDataErrors: string[][] = [];
+    const readable = fs.createReadStream(file.path);
+    const htLinhaDigitavel: { [key: string]: boolean } = {};
 
-  await new Promise<void>((resolve, reject) => {
-    readable
-      .pipe(csvParser({ separator: ',' }))
-      .on('data', (data) => {
-        boletos.push({
-          ...data,
-          unidade: Number(data.unidade),
-          valor: Number(data.valor),
+    await new Promise<void>((resolve, reject) => {
+      readable
+        .pipe(csvParser({ separator: ',' }))
+        .on('headers', (header) => {
+          csvHeader.push(header);
+        })
+        .on('data', (data) => {
+          if (htLinhaDigitavel[data.linha_digitavel]) {
+            throw ConflitError(
+              `A linha_digitavel ${data.linha_digitavel} está duplicada no documento`
+            );
+          }
+
+          const { error } = uploadBoletoSchema.validate(data, {
+            abortEarly: false,
+          });
+
+          if (error) {
+            validateDataErrors.push(error.details.map((d) => d.message));
+          }
+
+          htLinhaDigitavel[data.linha_digitavel] = true;
+          boletos.push({
+            ...data,
+            unidade: Number(data.unidade),
+            valor: Number(data.valor),
+          });
+        })
+        .on('end', () => {
+          resolve();
+        })
+        .on('error', (err) => {
+          reject(err);
         });
-      })
-      .on('end', () => {
-        resolve();
-      })
-      .on('error', (err) => {
-        reject(err);
-      });
-  });
+    });
 
-  req.uploadedData = boletos;
+    if (JSON.stringify(expectedCsvHeader) === JSON.stringify(csvHeader)) {
+      throw InvalidFormat(
+        `O header esperado: ${expectedCsvHeader}. Não coincide com o header recebido: ${csvHeader}`
+      );
+    }
+
+    if (validateDataErrors.length > 0) {
+      throw InvalidDataError(validateDataErrors);
+    }
+
+    req.uploadedData = boletos;
+  } catch (error) {
+    if (error.name === 'InvalidFormat') {
+      return res.status(httpStatus.UNPROCESSABLE_ENTITY).send(error);
+    }
+    if (error.name === 'ConflitError') {
+      return res.status(httpStatus.CONFLICT).send(error);
+    }
+    if (error.name === 'InvalidDataError') {
+      return res.status(httpStatus.BAD_REQUEST).send(error);
+    }
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .send('Erro interno ao tentar validar o documento');
+  }
+
   next();
 }
