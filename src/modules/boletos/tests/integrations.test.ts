@@ -5,6 +5,9 @@ import factoryBoletos from './factories/boletos.factory';
 import factoryRelatorio, {
   dataFromRelarioBase64,
 } from './factories/relatorios.factory';
+import fs from 'fs';
+import path from 'path';
+import httpStatus from 'http-status';
 
 const server = supertest(app);
 
@@ -213,12 +216,12 @@ describe('GET /boletos', () => {
     it('GET /boletos?id_lote=&relatorio=1 deve receber o relatorio correto', async () => {
       const lote = await prisma.lotes.findFirst();
 
-      const [b1] = (await factoryBoletos({naoFormatarResultado: true})).filter(
-        (boleto) => boleto.id_lote === lote.id
-      );
-      const [b2] = (await factoryBoletos({naoFormatarResultado: true})).filter(
-        (boleto) => boleto.id_lote === lote.id
-      );
+      const [b1] = (
+        await factoryBoletos({ naoFormatarResultado: true })
+      ).filter((boleto) => boleto.id_lote === lote.id);
+      const [b2] = (
+        await factoryBoletos({ naoFormatarResultado: true })
+      ).filter((boleto) => boleto.id_lote === lote.id);
 
       const boletosEsperados = [b1, b2];
 
@@ -284,5 +287,119 @@ describe('GET /boletos', () => {
       const resultado = await server.get('/boletos?relatorio=');
       expect(resultado.status).toBe(400);
     });
+  });
+});
+
+describe('POST /boletos/importar/csv', () => {
+  it('Deve receber status 422 ao não enviar um arquivo', async () => {
+    const resultado = await server.post('/boletos/importar/csv');
+    expect(resultado.status).toBe(httpStatus.UNPROCESSABLE_ENTITY);
+  });
+
+  it('Deve receber status 415 ao enviar um arquivo com extensão diferente de csv', async () => {
+    const pathTmp = path.resolve(__dirname, 'tmp');
+    const pathFile = `${pathTmp}/arquivoIncompativel.txt`;
+
+    fs.mkdirSync(pathTmp, { recursive: true });
+    fs.writeFileSync(pathFile, 'Minha extensão está errada');
+
+    const resultado = await server
+      .post('/boletos/importar/csv')
+      .attach('csvFile', pathFile);
+
+    fs.unlinkSync(pathFile);
+    expect(resultado.status).toBe(httpStatus.UNSUPPORTED_MEDIA_TYPE);
+  });
+
+  it('Deve receber status 422 ao enviar um CSV no formato incompativel', async () => {
+    const pathTmp = path.resolve(__dirname, 'tmp');
+    const pathFile = `${pathTmp}/boletos.csv`;
+
+    fs.mkdirSync(pathTmp, { recursive: true });
+    const csvContent = '1,2,3,4,5\na,b,c,d,e\nx,p,t,o,z';
+    fs.writeFileSync(pathFile, csvContent);
+
+    const resultado = await server
+      .post('/boletos/importar/csv')
+      .attach('csvFile', pathFile);
+
+    fs.unlinkSync(pathFile);
+    expect(resultado.status).toBe(httpStatus.UNPROCESSABLE_ENTITY);
+  });
+
+  it('Deve receber status 400 ao enviar um arquivo no formato correto mas com dados fora do padrão', async () => {
+    const pathTmp = path.resolve(__dirname, 'tmp');
+    const pathFile = `${pathTmp}/boletos.csv`;
+
+    fs.mkdirSync(pathTmp, { recursive: true });
+    const csvContent =
+      'nome,unidade,valor,linha_digitavel\na,b,c,d,e\nx,p,t,o,z';
+    fs.writeFileSync(pathFile, csvContent);
+
+    const resultado = await server
+      .post('/boletos/importar/csv')
+      .attach('csvFile', pathFile);
+
+    fs.unlinkSync(pathFile);
+
+    expect(resultado.status).toBe(httpStatus.BAD_REQUEST);
+  });
+
+  it('Deve receber status 409 ao enviar um arquivo com duas linhas digitaveis iguais', async () => {
+    const pathTmp = path.resolve(__dirname, 'tmp');
+    const pathFile = `${pathTmp}/boletos.csv`;
+
+    fs.mkdirSync(pathTmp, { recursive: true });
+    let csvContent = 'nome,unidade,valor,linha_digitavel\n';
+    csvContent += 'JOSE DA SILVA,10,182.54,123456123456123400\n';
+    csvContent += 'MARCOS DA SILVA,10,200.00,123456123456123400';
+    fs.writeFileSync(pathFile, csvContent);
+
+    const resultado = await server
+      .post('/boletos/importar/csv')
+      .attach('csvFile', pathFile);
+
+    fs.unlinkSync(pathFile);
+
+    expect(resultado.status).toBe(httpStatus.CONFLICT);
+  });
+
+  it('Deve receber status 404 se o csv contiver dado com unidade inexistente', async () => {
+    const pathTmp = path.resolve(__dirname, 'tmp');
+    const pathFile = `${pathTmp}/boletos.csv`;
+
+    fs.mkdirSync(pathTmp, { recursive: true });
+    let csvContent = 'nome,unidade,valor,linha_digitavel\n';
+    csvContent += 'JOSE DA SILVA,20,182.54,123456123456123400\n';
+    csvContent += 'MARCOS DA SILVA,10,200.00,123456123456123401';
+    fs.writeFileSync(pathFile, csvContent);
+
+    const resultado = await server
+      .post('/boletos/importar/csv')
+      .attach('csvFile', pathFile);
+
+    fs.unlinkSync(pathFile);
+    console.log(resultado.body);
+    expect(resultado.status).toBe(httpStatus.NOT_FOUND);
+  });
+
+  it('Deve receber status 201 se o csv estiver correto', async () => {
+    const pathTmp = path.resolve(__dirname, 'tmp');
+    const pathFile = `${pathTmp}/boletos.csv`;
+
+    fs.mkdirSync(pathTmp, { recursive: true });
+    let csvContent = 'nome,unidade,valor,linha_digitavel\n';
+    csvContent += 'JOSE DA SILVA,12,182.54,123456123456123400\n';
+    csvContent += 'MARCOS DA SILVA,10,200.00,123456123456123401\n';
+    csvContent += 'ANA ROSA,11,240.00,123456123456123402';
+    fs.writeFileSync(pathFile, csvContent);
+
+    const resultado = await server
+      .post('/boletos/importar/csv')
+      .attach('csvFile', pathFile);
+
+    fs.unlinkSync(pathFile);
+    console.log(resultado.body);
+    expect(resultado.status).toBe(httpStatus.CREATED);
   });
 });
