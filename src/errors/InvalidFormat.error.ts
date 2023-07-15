@@ -1,6 +1,6 @@
-export default function InvalidFormat(message?: string) {
+export default function InvalidFormatError(message?: string) {
   return {
-    name: 'InvalidFormat',
+    name: 'InvalidFormatError',
     message:
       message ||
       'Formato incompatível',

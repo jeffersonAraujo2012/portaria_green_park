@@ -1,7 +1,7 @@
 import { NextFunction, Response } from 'express';
 import { UploadRequest } from '@/modules/boletos/boletos.controller';
 import NoFilesReceivedError from '@/errors/NoFilesReceived.error';
-import InvalidFormat from '@/errors/InvalidFormat.error';
+import InvalidFormatError from '@/errors/InvalidFormat.error';
 import fs from 'fs';
 import httpStatus from 'http-status';
 import * as pdfjs from 'pdfjs-dist';
@@ -22,7 +22,7 @@ export default async function validarUploadBoletosPdf(
   if (file.mimetype !== 'application/pdf') {
     return res
       .status(httpStatus.UNSUPPORTED_MEDIA_TYPE)
-      .send(InvalidFormat('O arquivo deve ser um PDF.'));
+      .send(InvalidFormatError('O arquivo deve ser um PDF.'));
   }
 
   const pdfData = [];

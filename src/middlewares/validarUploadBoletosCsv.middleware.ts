@@ -1,12 +1,12 @@
 import { NextFunction, Response } from 'express';
 import { UploadRequest } from '@/modules/boletos/boletos.controller';
 import NoFilesReceivedError from '@/errors/NoFilesReceived.error';
-import InvalidFormat from '@/errors/InvalidFormat.error';
+import InvalidFormatError from '@/errors/InvalidFormat.error';
 import fs from 'fs';
 import csvParser from 'csv-parser';
 import httpStatus from 'http-status';
 import { Decimal } from '@prisma/client/runtime';
-import InvalidDataError from '@/errors/InvalidDataError';
+import InvalidDataError from '@/errors/InvalidData.error';
 import ConflitError from '@/errors/Conflit.error';
 import uploadBoletoSchema from '@/modules/boletos/schemas/uploadBoleto.schema';
 
@@ -33,7 +33,7 @@ export default async function validarUploadBoletosCsv(
   if (file.mimetype !== 'text/csv') {
     return res
       .status(httpStatus.UNSUPPORTED_MEDIA_TYPE)
-      .send(InvalidFormat('O arquivo deve ser um CSV.'));
+      .send(InvalidFormatError('O arquivo deve ser um CSV.'));
   }
 
   try {
@@ -84,7 +84,7 @@ export default async function validarUploadBoletosCsv(
     });
 
     if (JSON.stringify(expectedCsvHeader) !== JSON.stringify(csvHeader)) {
-      throw InvalidFormat(
+      throw InvalidFormatError(
         `O header esperado: ${expectedCsvHeader}. Não coincide com o header recebido: ${csvHeader}`
       );
     }
@@ -97,7 +97,7 @@ export default async function validarUploadBoletosCsv(
   } catch (error) {
     fs.unlinkSync(req.file.path);
 
-    if (error.name === 'InvalidFormat') {
+    if (error.name === 'InvalidFormatError') {
       return res.status(httpStatus.UNPROCESSABLE_ENTITY).send(error);
     }
 
