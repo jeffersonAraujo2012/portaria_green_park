@@ -8,7 +8,7 @@ import DuplicatedValueError from '@/errors/DuplicatedValue.error';
 import NotFoundError from '@/errors/NotFound.error';
 
 import addZerosEsqueda from '@/utils/addZerosEsquerda';
-import { DadoUploadBoleto } from '@/middlewares/validarUploadBoletosCsv.middleware';
+import { DataTicketUploaded } from '@/middlewares/validateTicketUploadCsv.middleware';
 
 import fs from 'fs';
 import path from 'path';
@@ -18,14 +18,14 @@ import printer from '@/configs/PDFMaker';
 import { TDocumentDefinitions } from 'pdfmake/interfaces';
 
 type HashtableBoletos = {
-  [key: string]: DadoUploadBoleto;
+  [key: string]: DataTicketUploaded;
 };
 
 type HashtableLotes = {
   [key: string]: number;
 };
 
-export async function importarBoletos(dadosUploadBoletos: DadoUploadBoleto[]) {
+export async function importarBoletos(dadosUploadBoletos: DataTicketUploaded[]) {
   //Gera o vetor com os nomes das unidades no formato do banco
   //Cria uma hashtable dos boletos
   //Verifica existência de nomes repetidos

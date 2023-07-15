@@ -1,9 +1,9 @@
 import { Router } from 'express';
 
 import upload from '@/middlewares/upload.middleware';
-import validarUploadBoletosCsv from '@/middlewares/validarUploadBoletosCsv.middleware';
+import validateTicketUploadCsv from '@/middlewares/validateTicketUploadCsv.middleware';
 import boletosController from './boletos.controller';
-import validarUploadBoletosPdf from '@/middlewares/validarUploadBoletosPdf.middleware';
+import validateTicketUploadPdf from '@/middlewares/validateTicketUploadPdf.middleware';
 import { validateQueries } from '@/middlewares/validate.middleware';
 import obterBoletoSchema from './schemas/obterBoletos.schema';
 
@@ -18,14 +18,14 @@ boletosRouter.get(
 boletosRouter.post(
   '/importar/csv',
   upload.single('csvFile'),
-  validarUploadBoletosCsv,
+  validateTicketUploadCsv,
   boletosController.importarBoletos
 );
 
 boletosRouter.post(
   '/importar/pdf',
   upload.single('pdfFile'),
-  validarUploadBoletosPdf,
+  validateTicketUploadPdf,
   boletosController.importarPDFBoletos
 );
 

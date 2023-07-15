@@ -6,7 +6,7 @@ import fs from 'fs';
 import httpStatus from 'http-status';
 import * as pdfjs from 'pdfjs-dist';
 
-export default async function validarUploadBoletosPdf(
+export default async function validateTicketUploadPdf(
   req: UploadRequest,
   res: Response,
   next: NextFunction

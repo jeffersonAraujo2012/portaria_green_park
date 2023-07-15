@@ -4,7 +4,6 @@ import fs from 'fs';
 
 const tempFolder = path.resolve(__dirname, '..', '..', 'tmp');
 
-// Configuração do Multer
 const storage = multer.diskStorage({
   destination: tempFolder,
   filename: function (req, file, cb) {

@@ -10,14 +10,14 @@ import InvalidDataError from '@/errors/InvalidData.error';
 import ConflitError from '@/errors/Conflit.error';
 import uploadBoletoSchema from '@/modules/boletos/schemas/uploadBoleto.schema';
 
-export type DadoUploadBoleto = {
+export type DataTicketUploaded = {
   nome: string;
   unidade: number;
   valor: Decimal;
   linha_digitavel: string;
 };
 
-export default async function validarUploadBoletosCsv(
+export default async function validateTicketUploadCsv(
   req: UploadRequest,
   res: Response,
   next: NextFunction
@@ -39,10 +39,10 @@ export default async function validarUploadBoletosCsv(
   try {
     const expectedCsvHeader = ['nome', 'unidade', 'valor', 'linha_digitavel'];
     const csvHeader: string[] = [];
-    const boletos: DadoUploadBoleto[] = [];
+    const tickets: DataTicketUploaded[] = [];
     const validateDataErrors: string[][] = [];
     const readable = fs.createReadStream(file.path);
-    const htLinhaDigitavel: { [key: string]: boolean } = {};
+    const htBarcode: { [key: string]: boolean } = {};
 
     await new Promise<void>((resolve, reject) => {
       readable
@@ -52,7 +52,7 @@ export default async function validarUploadBoletosCsv(
         })
         .on('data', (data) => {
           if (
-            htLinhaDigitavel[data.linha_digitavel] &&
+            htBarcode[data.linha_digitavel] &&
             data.linha_digitavel !== undefined
           ) {
             throw ConflitError(
@@ -68,8 +68,8 @@ export default async function validarUploadBoletosCsv(
             validateDataErrors.push(error.details.map((d) => d.message));
           }
 
-          htLinhaDigitavel[data.linha_digitavel] = true;
-          boletos.push({
+          htBarcode[data.linha_digitavel] = true;
+          tickets.push({
             ...data,
             unidade: Number(data.unidade),
             valor: Number(data.valor),
@@ -93,7 +93,7 @@ export default async function validarUploadBoletosCsv(
       throw InvalidDataError(validateDataErrors);
     }
 
-    req.uploadedData = boletos;
+    req.uploadedData = tickets;
   } catch (error) {
     fs.unlinkSync(req.file.path);
 
