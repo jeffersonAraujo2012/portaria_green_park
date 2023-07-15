@@ -70,7 +70,7 @@ export async function importarBoletos(dadosUploadBoletos: DadoUploadBoleto[]) {
     });
 
     throw NotFoundError(
-      'A(s) seguinte(s) unidade(s) não foi/foram encontrada(s) no sistema: ' +
+      'Importações canceladas, pois a(s) seguinte(s) unidade(s) não foi/foram encontrada(s) no sistema: ' +
         listaDeNaoEncontrados
     );
   }
