@@ -284,6 +284,8 @@ const boletosService = {
   importarBoletos,
   importarPDFBoletos,
   obterBoletos,
+  generatePDFBoletos,
+  generateBase64PDF,
 };
 
 export default boletosService;
