@@ -16,6 +16,9 @@ async function importarBoletos(req: UploadRequest, res: Response) {
     const response = 'Importação concluída.';
     return res.status(httpStatus.CREATED).send(response);
   } catch (error) {
+    if (error.name === 'NotFoundError') {
+      return res.status(httpStatus.NOT_FOUND).send(error);
+    }
     if (error.name === 'ConflitError') {
       return res.status(httpStatus.CONFLICT).send(error);
     }
