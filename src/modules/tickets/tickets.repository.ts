@@ -1,9 +1,8 @@
 import prisma from '@/configs/database';
 import { boletos } from '@prisma/client';
-import { ObterBoletosProps } from './schemas/obterBoletos.schema';
-import { Decimal } from '@prisma/client/runtime';
+import { GetTicketsProps } from './schemas/getTickets.schema';
 
-async function findManyByLinhaDigitavel(linhasDigitaveis: string[]) {
+async function findManyByBarcodes(linhasDigitaveis: string[]) {
   return prisma.boletos.findMany({
     where: {
       linha_digitavel: {
@@ -19,7 +18,7 @@ async function createMany(boletos: Omit<boletos, 'id' | 'criado_em'>[]) {
   });
 }
 
-async function getBoletos(queries: ObterBoletosProps): Promise<boletos[]> {
+async function getTickets(queries: GetTicketsProps): Promise<boletos[]> {
   const { id_lote, nome, valor_final, valor_inicial } = queries;
 
   return prisma.boletos.findMany({
@@ -34,10 +33,10 @@ async function getBoletos(queries: ObterBoletosProps): Promise<boletos[]> {
   });
 }
 
-const boletosRepository = {
+const ticketsRepository = {
   createMany,
-  findManyByLinhaDigitavel,
-  getBoletos,
+  findManyByBarcodes,
+  getTickets,
 };
 
-export default boletosRepository;
+export default ticketsRepository;

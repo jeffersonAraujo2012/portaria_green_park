@@ -1,5 +1,5 @@
 import { boletos } from "@prisma/client";
-import boletosService from "../../boletos.service";
+import boletosService from "../../tickets.service";
 import * as pdfjs from 'pdfjs-dist';
 
 export default async function factoryRelatorio(boletos: boletos[]) {

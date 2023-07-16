@@ -1,7 +1,7 @@
 import { boletos } from '@prisma/client';
 
-import boletosRepository from './boletos.repository';
-import lotesRepository from '../lotes/lotes.repository';
+import ticketsRepository from './tickets.repository';
+import lotsRepository from '../lotes/lotes.repository';
 
 import ConflitError from '@/errors/Conflit.error';
 import DuplicatedValueError from '@/errors/DuplicatedValue.error';
@@ -13,93 +13,93 @@ import { DataTicketUploaded } from '@/middlewares/validateTicketUploadCsv.middle
 import fs from 'fs';
 import path from 'path';
 import { PDFDocument } from 'pdf-lib';
-import { ObterBoletosProps } from './schemas/obterBoletos.schema';
+import { GetTicketsProps } from './schemas/getTickets.schema';
 import printer from '@/configs/PDFMaker';
 import { TDocumentDefinitions } from 'pdfmake/interfaces';
 
-type HashtableBoletos = {
+type HashtableTickets = {
   [key: string]: DataTicketUploaded;
 };
 
-type HashtableLotes = {
+type HashtableLots = {
   [key: string]: number;
 };
 
-export async function importarBoletos(dadosUploadBoletos: DataTicketUploaded[]) {
+export async function importTickets(dataTicketsUploaded: DataTicketUploaded[]) {
   //Gera o vetor com os nomes das unidades no formato do banco
   //Cria uma hashtable dos boletos
   //Verifica existência de nomes repetidos
-  const hashtableBoletos: HashtableBoletos = {};
-  const nomesUnidades = dadosUploadBoletos.map((boleto) => {
-    const nomeFormatado = addZerosEsqueda(boleto.unidade, 4);
+  const hashtableTickets: HashtableTickets = {};
+  const unitiesName = dataTicketsUploaded.map((ticket) => {
+    const formatedName = addZerosEsqueda(ticket.unidade, 4);
 
-    if (hashtableBoletos[nomeFormatado]) {
+    if (hashtableTickets[formatedName]) {
       throw DuplicatedValueError(
         'O valor ' +
-          nomeFormatado +
+          formatedName +
           ' está duplicado. Por favor, verifique e tente novamente.'
       );
     } else {
-      hashtableBoletos[nomeFormatado] = boleto;
+      hashtableTickets[formatedName] = ticket;
     }
 
-    return nomeFormatado;
+    return formatedName;
   });
 
   //Busca as unidades pelos nomes
-  const lotes = await lotesRepository.findManyByName(nomesUnidades);
+  const lots = await lotsRepository.findManyByName(unitiesName);
 
   //Cria uma hashtable {nomeUnidade: idUnidade}
-  const hashtableLotes: HashtableLotes = {};
-  lotes.forEach((lote) => {
-    if (hashtableLotes[lote.nome])
+  const hashtableLots: HashtableLots = {};
+  lots.forEach((lot) => {
+    if (hashtableLots[lot.nome])
       throw DuplicatedValueError(
         'O valor ' +
-          lote.nome +
+          lot.nome +
           ' está duplicado. Por favor, verifique e tente novamente.'
       );
-    hashtableLotes[lote.nome] = lote.id;
+    hashtableLots[lot.nome] = lot.id;
   });
 
   //verifica se todos as unidades possuiam lotes registrados no sistema
-  if (nomesUnidades.length !== lotes.length) {
-    const listaDeNaoEncontrados: number[] = [];
+  if (unitiesName.length !== lots.length) {
+    const notFoundList: number[] = [];
 
-    nomesUnidades.forEach((nome) => {
-      if (!hashtableLotes[nome]) listaDeNaoEncontrados.push(Number(nome));
+    unitiesName.forEach((name) => {
+      if (!hashtableLots[name]) notFoundList.push(Number(name));
     });
 
     throw NotFoundError(
       'Importações canceladas, pois a(s) seguinte(s) unidade(s) não foi/foram encontrada(s) no sistema: ' +
-        listaDeNaoEncontrados
+        notFoundList
     );
   }
 
   //Gera os dados a serem inseridos na tabela boletos do banco
-  const dadosParaBancoDeDadosBoletos = nomesUnidades.map((nome) => {
+  const dataForDBTickets = unitiesName.map((name) => {
     const {
       nome: nome_sacado,
       valor,
       linha_digitavel,
-    } = hashtableBoletos[nome];
+    } = hashtableTickets[name];
     return {
       nome_sacado,
-      id_lote: hashtableLotes[nome],
+      id_lote: hashtableLots[name],
       valor,
       linha_digitavel,
     };
   });
 
-  return boletosService.criarVariosBoletos(dadosParaBancoDeDadosBoletos);
+  return createManyTickets(dataForDBTickets);
 }
 
-async function criarVariosBoletos(
+async function createManyTickets(
   boletos: Omit<boletos, 'id' | 'criado_em'>[]
 ) {
-  const linhasDigitaveis = boletos.map((boleto) => boleto.linha_digitavel);
+  const barcodes = boletos.map((boleto) => boleto.linha_digitavel);
 
-  const boletosExistentes = await boletosRepository.findManyByLinhaDigitavel(
-    linhasDigitaveis
+  const boletosExistentes = await ticketsRepository.findManyByBarcodes(
+    barcodes
   );
   if (boletosExistentes?.length > 0) {
     const linhasExistentes = boletosExistentes.map(
@@ -111,54 +111,51 @@ async function criarVariosBoletos(
     );
   }
 
-  return boletosRepository.createMany(boletos);
+  return ticketsRepository.createMany(boletos);
 }
 
-type HTLinhaDigitavelPage = {
+type HTBarcodePage = {
   [key: string]: number;
 };
 
-type HTPageBoletoId = {
+type HTPageTicketId = {
   [key: number]: number;
 };
 
-type pageBoletosPDF = {
+type TicketPagePDF = {
   [line: string]: string;
 };
 
-async function importarPDFBoletos(
-  textBoletosPDF: pageBoletosPDF[],
-  pdfBase: any
-) {
-  const INDICE_LINHA_DIGITAVEL = 3;
+async function importTicketPDF(ticketTextPDF: TicketPagePDF[], pdfBase: any) {
+  const BARCODE_INDEX = 3;
 
-  const hashtableLinhaDigitavelPage: HTLinhaDigitavelPage = {};
-  const linhasDigitaveis = textBoletosPDF.map((page, index) => {
-    const linhaDigitavel = page[INDICE_LINHA_DIGITAVEL];
-    if (hashtableLinhaDigitavelPage[linhaDigitavel]) {
+  const hashtableBarcodePage: HTBarcodePage = {};
+  const barcodes = ticketTextPDF.map((page, index) => {
+    const barcode = page[BARCODE_INDEX];
+    if (hashtableBarcodePage[barcode]) {
       throw DuplicatedValueError(
         `Os boletos das páginas ${
-          hashtableLinhaDigitavelPage[linhaDigitavel] + 1
+          hashtableBarcodePage[barcode] + 1
         } e ${
           index + 1
         } possuem a mesma linha digitável. Por favor, verifique e tente novamente.`
       );
     }
-    hashtableLinhaDigitavelPage[linhaDigitavel] = index;
-    return linhaDigitavel;
+    hashtableBarcodePage[barcode] = index;
+    return barcode;
   });
 
-  const boletos = await boletosRepository.findManyByLinhaDigitavel(
-    linhasDigitaveis
+  const tickets = await ticketsRepository.findManyByBarcodes(
+    barcodes
   );
 
-  const HTPageBoletoId: HTPageBoletoId = {};
-  boletos.forEach((boleto) => {
-    const page = hashtableLinhaDigitavelPage[boleto.linha_digitavel];
-    HTPageBoletoId[page] = boleto.id;
+  const HTPageTicketId: HTPageTicketId = {};
+  tickets.forEach((ticket) => {
+    const page = hashtableBarcodePage[ticket.linha_digitavel];
+    HTPageTicketId[page] = ticket.id;
   });
 
-  const localParaOsNovosPdfs = path.resolve(
+  const newPDFsPath = path.resolve(
     __dirname,
     '..',
     '..',
@@ -166,7 +163,7 @@ async function importarPDFBoletos(
     'files',
     'boletos-salvos'
   );
-  fs.mkdirSync(localParaOsNovosPdfs, { recursive: true });
+  fs.mkdirSync(newPDFsPath, { recursive: true });
 
   const pdfBuffer = fs.readFileSync(pdfBase.path);
   const pdfDoc = await PDFDocument.load(pdfBuffer);
@@ -175,7 +172,7 @@ async function importarPDFBoletos(
   for (let i = 0; i < numPages; i++) {
     const newDoc = await PDFDocument.create();
     const outputNewDoc =
-      localParaOsNovosPdfs + '/' + HTPageBoletoId[i] + '.pdf';
+      newPDFsPath + '/' + HTPageTicketId[i] + '.pdf';
 
     const [page] = await newDoc.copyPages(pdfDoc, [i]);
     newDoc.addPage(page);
@@ -184,46 +181,46 @@ async function importarPDFBoletos(
     fs.writeFileSync(outputNewDoc, newDocData);
   }
 
-  return HTPageBoletoId;
+  return HTPageTicketId;
 }
 
 type Base64Response = {
   base64: string;
 };
 
-async function obterBoletos(
-  queries: ObterBoletosProps
+async function getTickets(
+  queries: GetTicketsProps
 ): Promise<boletos[] | Base64Response> {
-  const boletos = await boletosRepository.getBoletos(queries);
+  const tickets = await ticketsRepository.getTickets(queries);
 
   if (!queries.relatorio) {
-    return boletos;
+    return tickets;
   }
 
-  const pdfDoc = generatePDFBoletos(boletos);
+  const pdfDoc = generatePDFBoletos(tickets);
   const base64PDF = await generateBase64PDF(pdfDoc);
 
   return { base64: base64PDF };
 }
 
-function generatePDFBoletos(boletos: boletos[]) {
+function generatePDFBoletos(tickets: boletos[]) {
   let tableHeaderPdf;
-  const tableBodyPdf = boletos.map((boleto, index) => {
+  const tableBodyPdf = tickets.map((ticket, index) => {
     const dataRaw: any[] = [];
-    const keys = Object.keys(boleto);
+    const keys = Object.keys(ticket);
     if (index === 0) tableHeaderPdf = [...keys];
     keys.forEach((key: keyof boletos) => {
       if (key === 'valor') {
-        return dataRaw.push(boleto[key].toFixed(2));
+        return dataRaw.push(ticket[key].toFixed(2));
       }
       if (key === 'criado_em') {
-        const d = boleto.criado_em;
+        const d = ticket.criado_em;
         const year = d.getFullYear();
         const month = addZerosEsqueda(d.getMonth(), 2);
         const day = d.getDate();
         return dataRaw.push(`${year}-${month}-${day}`);
       }
-      dataRaw.push(boleto[key]);
+      dataRaw.push(ticket[key]);
     });
     return dataRaw;
   });
@@ -280,10 +277,10 @@ async function generateBase64PDF(pdfDoc: PDFKit.PDFDocument) {
 }
 
 const boletosService = {
-  criarVariosBoletos,
-  importarBoletos,
-  importarPDFBoletos,
-  obterBoletos,
+  createManyTickets,
+  importTickets,
+  importTicketPDF,
+  getTickets,
   generatePDFBoletos,
   generateBase64PDF,
 };

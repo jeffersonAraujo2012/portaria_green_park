@@ -11,8 +11,8 @@ async function findManyByName(nomes: string[]): Promise<lotes[]> {
   });
 }
 
-const lotesRepository = {
+const lotsRepository = {
   findManyByName
 };
 
-export default lotesRepository;
+export default lotsRepository;

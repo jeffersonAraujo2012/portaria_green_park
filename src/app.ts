@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import boletosRouter from './modules/boletos/boletos.router';
+import boletosRouter from './modules/tickets/tickets.router';
 dotenv.config();
 
 const app = express();

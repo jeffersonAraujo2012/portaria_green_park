@@ -1,6 +1,6 @@
 import Joi from 'joi';
 
-export type ObterBoletosProps = {
+export type GetTicketsProps = {
   nome?: string;
   valor_inicial?: number;
   valor_final?: number;
@@ -8,7 +8,7 @@ export type ObterBoletosProps = {
   relatorio?: 1;
 };
 
-const obterBoletoSchema = Joi.object<ObterBoletosProps>({
+const getTicketsSchema = Joi.object<GetTicketsProps>({
   nome: Joi.string(),
   valor_inicial: Joi.number().min(0),
   valor_final: Joi.when('valor_inicial', {
@@ -20,4 +20,4 @@ const obterBoletoSchema = Joi.object<ObterBoletosProps>({
   relatorio: Joi.number().valid(1),
 });
 
-export default obterBoletoSchema;
+export default getTicketsSchema;

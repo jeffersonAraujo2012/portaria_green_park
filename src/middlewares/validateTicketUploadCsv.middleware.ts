@@ -1,5 +1,5 @@
 import { NextFunction, Response } from 'express';
-import { UploadRequest } from '@/modules/boletos/boletos.controller';
+import { UploadRequest } from '@/modules/tickets/tickets.controller';
 import NoFilesReceivedError from '@/errors/NoFilesReceived.error';
 import InvalidFormatError from '@/errors/InvalidFormat.error';
 import fs from 'fs';
@@ -8,7 +8,7 @@ import httpStatus from 'http-status';
 import { Decimal } from '@prisma/client/runtime';
 import InvalidDataError from '@/errors/InvalidData.error';
 import ConflitError from '@/errors/Conflit.error';
-import uploadBoletoSchema from '@/modules/boletos/schemas/uploadBoleto.schema';
+import uploadBoletoSchema from '@/modules/tickets/schemas/uploadBoleto.schema';
 
 export type DataTicketUploaded = {
   nome: string;

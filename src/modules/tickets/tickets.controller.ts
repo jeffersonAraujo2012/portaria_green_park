@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import httpStatus from 'http-status';
-import boletosService from './boletos.service';
-import { ObterBoletosProps } from './schemas/obterBoletos.schema';
+import ticketsService from './tickets.service';
+import { GetTicketsProps } from './schemas/getTickets.schema';
 import diacritics from 'diacritics';
 import { deleteTmpFile } from '@/utils/deleteTmpFile';
 
@@ -10,9 +10,9 @@ export type UploadRequest = Request & {
   uploadedData?: any;
 };
 
-async function importarBoletos(req: UploadRequest, res: Response) {
+async function importTickets(req: UploadRequest, res: Response) {
   try {
-    await boletosService.importarBoletos(req.uploadedData);
+    await ticketsService.importTickets(req.uploadedData);
     const response = 'Importação concluída.';
     return res.status(httpStatus.CREATED).send(response);
   } catch (error) {
@@ -28,9 +28,9 @@ async function importarBoletos(req: UploadRequest, res: Response) {
   }
 }
 
-async function importarPDFBoletos(req: UploadRequest, res: Response) {
+async function importTicketPDF(req: UploadRequest, res: Response) {
   try {
-    await boletosService.importarPDFBoletos(req.uploadedData, req.file);
+    await ticketsService.importTicketPDF(req.uploadedData, req.file);
     const response = 'Importação concluída.';
     return res.status(httpStatus.CREATED).send(response);
   } catch (error) {
@@ -43,9 +43,9 @@ async function importarPDFBoletos(req: UploadRequest, res: Response) {
   }
 }
 
-async function obterBoletos(req: Request, res: Response) {
+async function getTickets(req: Request, res: Response) {
   const { id_lote, nome, valor_final, valor_inicial, relatorio } =
-    req.query as ObterBoletosProps;
+    req.query as GetTicketsProps;
   const queries = {
     id_lote: Number(id_lote),
     nome: nome && diacritics.remove(nome?.toUpperCase()),
@@ -54,7 +54,7 @@ async function obterBoletos(req: Request, res: Response) {
     relatorio,
   };
   try {
-    const boletos = await boletosService.obterBoletos(queries);
+    const boletos = await ticketsService.getTickets(queries);
     return res.status(httpStatus.OK).send(boletos);
   } catch (error) {
     console.log(error);
@@ -62,10 +62,10 @@ async function obterBoletos(req: Request, res: Response) {
   }
 }
 
-const boletosController = {
-  importarBoletos,
-  importarPDFBoletos,
-  obterBoletos,
+const ticketsController = {
+  importTickets,
+  importTicketPDF,
+  getTickets,
 };
 
-export default boletosController;
+export default ticketsController;
