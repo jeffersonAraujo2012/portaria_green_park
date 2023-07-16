@@ -25,7 +25,7 @@ Este projeto buscou, na medida do possível, utilizar uma estrutura em módulos 
 - **Service:** Para regras de negócio e processamento antes da camada final.
 - **Repository:** Camada final com finalidade de se comunicar com o banco de dados via um ORM, que neste projeto é o Prisma.
 
-#### A estrutura de básica de pastas ficou da seguinte forma:
+#### A estrutura básica de pastas ficou da seguinte forma:
 
 Root <br>
 ├── files <br>
