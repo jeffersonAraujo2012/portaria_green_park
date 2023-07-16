@@ -18,7 +18,7 @@ Esse sistema realiza o trabalho de importação em .csv e .pdf dos boletos do si
 
 
 ## Estrutura do Projeto
-Este projeto utilizou buscou na medida do possível utilizar uma estrutura em modulas e arquitetura em camadas. Onde cada módulo possui seu próprio:
+Este projeto buscou, na medida do possível, utilizar uma estrutura em módulos e arquitetura em camadas. Onde cada módulo possui seu próprio:
 
 - **Router:** Para declaração de rotas.
 - **Controller:** Para controle de requisições e resposta.
@@ -121,7 +121,7 @@ Suba os container com o Docker Compose
   sudo docker compose up -d
 ```
 
-A partir de aqui haverão dois container em execução em sua máquina:
+A partir de aqui haverão dois containeres em execução em sua máquina:
 
 - App
 - Postgres
@@ -133,7 +133,7 @@ A porta padrão de conexão com container app é 5000. A do postgres é 5433. Se
 
 #### Obter boletos
 
-```http
+```
   GET /boletos?nome=${nome}&valor_inicial=${valor_inicial}&valor_final=${valor_final}&id_lote=${id_lote}&relatorio=&{relatorio}
 ```
 
@@ -152,7 +152,7 @@ A porta padrão de conexão com container app é 5000. A do postgres é 5433. Se
 
 #### Importar boletos para base de dados
 
-```http
+```
   POST /boletos/importar/csv
 ```
 
@@ -177,7 +177,7 @@ O arquivo **deve** possuir a extensão csv e estar no seguinte formato:
 
 #### Importar arquivos PDF dos boletos
 
-```http
+```
   POST /boletos/importar/pdf
 ```
 
@@ -188,7 +188,7 @@ O arquivo **deve** possuir a extensão csv e estar no seguinte formato:
 
 ## Testes automatizados
 
-Para executar os testes automatizados você ter que configurar seu .env.test. Faça isso de preferência com um banco de dados diferente, pois os testes manipular o banco enquanto são executados.
+Para executar os testes automatizados você terá que configurar seu .env.test. Faça isso de preferência com um banco de dados diferente, pois os testes manipulam o banco enquanto são executados.
 
 Os procedimentos também variam se você está com docker ou não.
 
